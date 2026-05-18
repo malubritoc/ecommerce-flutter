@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'product_screen.dart';
+
 /// Tela de login da aplicação.
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -33,26 +35,68 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-class _LoginForm extends StatelessWidget {
+class _LoginForm extends StatefulWidget {
   const _LoginForm();
 
   @override
+  State<_LoginForm> createState() => _LoginFormState();
+}
+
+class _LoginFormState extends State<_LoginForm> {
+  // Controladores para pegar o texto digitado
+  final TextEditingController _userController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  
+  // Variável para controlar a mensagem de erro
+  String? _errorMessage;
+
+  void _fazerLogin() {
+    // Validando dados (Atividade 1)
+    if (_userController.text == 'admin' && _passwordController.text == '12345') {
+      setState(() {
+        _errorMessage = null; // Limpa o erro
+      });
+      // Navegar para a tela de produtos (Atividade 2)
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProductsScreen()),
+      );
+    } else {
+      setState(() {
+        _errorMessage = 'Credenciais inválidas';
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Column(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Title(),
-        SizedBox(height: 28),
-        _UsernameField(),
-        SizedBox(height: 16),
-        _PasswordField(),
-        SizedBox(height: 24),
-        _LoginButton(),
-        SizedBox(height: 16),
-        _ForgotPasswordLink(),
-        SizedBox(height: 8),
-        _SignUpLink(),
+        const _Title(),
+        const SizedBox(height: 28),
+        // Passar os controladores para os campos de texto
+        _UsernameField(controller: _userController),
+        const SizedBox(height: 16),
+        _PasswordField(controller: _passwordController),
+        const SizedBox(height: 16),
+        
+        // Exibir erro condicionalmente
+        if (_errorMessage != null)
+          Text(
+            _errorMessage!,
+            style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          
+        const SizedBox(height: 16),
+        // Passar a função para o botão
+        _LoginButton(onPressed: _fazerLogin),
+        const SizedBox(height: 16),
+        const _ForgotPasswordLink(),
+        const SizedBox(height: 8),
+        const _SignUpLink(),
       ],
     );
   }
@@ -75,11 +119,13 @@ class _Title extends StatelessWidget {
 }
 
 class _UsernameField extends StatelessWidget {
-  const _UsernameField();
+  final TextEditingController controller;
+  const _UsernameField({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       decoration: InputDecoration(
         hintText: 'usuário',
         filled: true,
@@ -102,11 +148,13 @@ class _UsernameField extends StatelessWidget {
 }
 
 class _PasswordField extends StatelessWidget {
-  const _PasswordField();
+  final TextEditingController controller;
+  const _PasswordField({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller, // Vinculando o controller
       obscureText: true,
       decoration: InputDecoration(
         hintText: 'senha',
@@ -130,25 +178,23 @@ class _PasswordField extends StatelessWidget {
 }
 
 class _LoginButton extends StatelessWidget {
-  const _LoginButton();
+  final VoidCallback onPressed;
+  const _LoginButton({required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       height: 48,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF3D5AFE),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6),
-          ),
+          )
         ),
-        child: const Text(
-          'Login',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+        child: const Text('Login'),
       ),
     );
   }
