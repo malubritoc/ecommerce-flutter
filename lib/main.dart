@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 import 'screens/auth_gate.dart';
+import 'services/cart_service.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => CartProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
