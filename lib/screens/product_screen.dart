@@ -70,11 +70,11 @@ class ProductCard extends StatelessWidget {
                         // Adicionar o produto ao carrinho usando o CartProvider
                         Provider.of<CartProvider>(context, listen: false).addProduct(product);
                         
-                        // Esconder qualquer SnackBar anterior para evitar sobreposição
-                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
                         // Mostrar um SnackBar confirmando que o produto foi adicionado ao carrinho
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        scaffoldMessenger.hideCurrentSnackBar();
+                        
+                        scaffoldMessenger.showSnackBar(
                           SnackBar(
                             content: Text('${product.title} adicionado ao carrinho!'),
                             duration: const Duration(seconds: 2),
@@ -87,6 +87,11 @@ class ProductCard extends StatelessWidget {
                             ),
                           ),
                         );
+                        
+                        // Garantir que o SnackBar desapareça após a duração especificada
+                        Future.delayed(const Duration(seconds: 2), () {
+                          scaffoldMessenger.hideCurrentSnackBar();
+                        });
                       },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
