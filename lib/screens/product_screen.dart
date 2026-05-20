@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 
-class ProductCard extends StatelessWidget {
-  final String title;
-  final String description;
-  final double price;
+import '../models/product.dart';
+import '../services/auth_service.dart';
+import '../services/product_service.dart';
+import 'login_screen.dart';
 
-  const ProductCard({
-    super.key,
-    required this.title,
-    required this.description,
-    required this.price,
-  });
+class ProductCard extends StatelessWidget {
+  final Product product;
+
+  const ProductCard({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {
@@ -19,12 +17,21 @@ class ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Área da imagem (placeholder por enquanto)
           Expanded(
             child: Container(
-              color: Colors.grey[300],
+              color: Colors.grey[200],
               width: double.infinity,
-              child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+              padding: const EdgeInsets.all(8),
+              child: Image.network(
+                product.image,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const Center(child: CircularProgressIndicator());
+                },
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+              ),
             ),
           ),
           Padding(
@@ -32,32 +39,74 @@ class ProductCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  product.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
-                Text(description, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                Text(
+                  product.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('R\$ ${price.toStringAsFixed(2)}', style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                    Text(
+                      'R\$ ${product.price.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     ElevatedButton(
                       onPressed: () {},
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                       child: const Text('Comprar'),
-                    )
+                    ),
                   ],
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
   }
 }
 
-class ProductsScreen extends StatelessWidget {
+class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
+
+  @override
+  State<ProductsScreen> createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends State<ProductsScreen> {
+  final ProductService _productService = ProductService();
+  final AuthService _authService = AuthService();
+  late Future<List<Product>> _productsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _productsFuture = _productService.fetchProducts();
+  }
+
+  Future<void> _logout() async {
+    await _authService.logout();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,43 +117,39 @@ class ProductsScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app),
-            onPressed: () {
-              // Navegar de volta para a tela de login
-              Navigator.pop(context);
-            },
-          )
+            onPressed: _logout,
+          ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: GridView.count(
-          crossAxisCount: 2, // 2 colunas
-          childAspectRatio: 0.7, // Ajusta a proporção da altura/largura
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          children: const [
-            ProductCard(
-              title: 'Notebook',
-              description: 'Notebook 15" com processador Intel i7',
-              price: 3500.00,
+      body: FutureBuilder<List<Product>>(
+        future: _productsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'Falha ao carregar produtos:\n${snapshot.error}',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          }
+          final products = snapshot.data ?? const [];
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: GridView.count(
+              crossAxisCount: 2,
+              childAspectRatio: 0.7,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              children: products.map((p) => ProductCard(product: p)).toList(),
             ),
-            ProductCard(
-              title: 'Mouse',
-              description: 'Mouse sem fio com bateria de longa duração',
-              price: 85.00,
-            ),
-            ProductCard(
-              title: 'Teclado',
-              description: 'Teclado RGB com switch mecânico',
-              price: 450.00,
-            ),
-            ProductCard(
-              title: 'Monitor',
-              description: 'Monitor Full HD com painel IPS',
-              price: 1200.00,
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
