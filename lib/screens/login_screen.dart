@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../services/auth_service.dart';
 import 'product_screen.dart';
 
-/// Tela de login da aplicação.
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -43,28 +43,40 @@ class _LoginForm extends StatefulWidget {
 }
 
 class _LoginFormState extends State<_LoginForm> {
-  // Controladores para pegar o texto digitado
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  
-  // Variável para controlar a mensagem de erro
-  String? _errorMessage;
+  final AuthService _authService = AuthService();
 
-  void _fazerLogin() {
-    // Validando dados (Atividade 1)
-    if (_userController.text == 'admin' && _passwordController.text == '12345') {
-      setState(() {
-        _errorMessage = null; // Limpa o erro
-      });
-      // Navegar para a tela de produtos (Atividade 2)
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProductsScreen()),
+  String? _errorMessage;
+  bool _isLoading = false;
+
+  Future<void> _fazerLogin() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final token = await _authService.login(
+        _userController.text.trim(),
+        _passwordController.text,
       );
-    } else {
-      setState(() {
-        _errorMessage = 'Credenciais inválidas';
-      });
+
+      if (!mounted) return;
+
+      if (token != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ProductsScreen()),
+        );
+      } else {
+        setState(() => _errorMessage = 'Credenciais inválidas');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _errorMessage = 'Erro de conexão. Tente novamente.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -76,23 +88,21 @@ class _LoginFormState extends State<_LoginForm> {
       children: [
         const _Title(),
         const SizedBox(height: 28),
-        // Passar os controladores para os campos de texto
         _UsernameField(controller: _userController),
         const SizedBox(height: 16),
         _PasswordField(controller: _passwordController),
         const SizedBox(height: 16),
-        
-        // Exibir erro condicionalmente
         if (_errorMessage != null)
           Text(
             _errorMessage!,
             style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
-          
         const SizedBox(height: 16),
-        // Passar a função para o botão
-        _LoginButton(onPressed: _fazerLogin),
+        _LoginButton(
+          onPressed: _isLoading ? null : _fazerLogin,
+          isLoading: _isLoading,
+        ),
         const SizedBox(height: 16),
         const _ForgotPasswordLink(),
         const SizedBox(height: 8),
@@ -154,7 +164,7 @@ class _PasswordField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
-      controller: controller, // Vinculando o controller
+      controller: controller,
       obscureText: true,
       decoration: InputDecoration(
         hintText: 'senha',
@@ -178,8 +188,9 @@ class _PasswordField extends StatelessWidget {
 }
 
 class _LoginButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  const _LoginButton({required this.onPressed});
+  final VoidCallback? onPressed;
+  final bool isLoading;
+  const _LoginButton({required this.onPressed, required this.isLoading});
 
   @override
   Widget build(BuildContext context) {
@@ -192,9 +203,18 @@ class _LoginButton extends StatelessWidget {
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6),
-          )
+          ),
         ),
-        child: const Text('Login'),
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : const Text('Login'),
       ),
     );
   }
