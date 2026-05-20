@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../services/auth_service.dart';
 import '../services/product_service.dart';
+import '../services/cart_service.dart';
+import 'cart_screen.dart';
 import 'login_screen.dart';
 
 class ProductCard extends StatelessWidget {
@@ -64,7 +66,33 @@ class ProductCard extends StatelessWidget {
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Adicionar o produto ao carrinho usando o CartProvider
+                        Provider.of<CartProvider>(context, listen: false).addProduct(product);
+                        
+                        // Mostrar um SnackBar confirmando que o produto foi adicionado ao carrinho
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        scaffoldMessenger.hideCurrentSnackBar();
+                        
+                        scaffoldMessenger.showSnackBar(
+                          SnackBar(
+                            content: Text('${product.title} adicionado ao carrinho!'),
+                            duration: const Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                            action: SnackBarAction(
+                              label: 'Desfazer',
+                              onPressed: () {
+                                Provider.of<CartProvider>(context, listen: false).removeProduct(product);
+                              },
+                            ),
+                          ),
+                        );
+                        
+                        // Garantir que o SnackBar desapareça após a duração especificada
+                        Future.delayed(const Duration(seconds: 2), () {
+                          scaffoldMessenger.hideCurrentSnackBar();
+                        });
+                      },
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
@@ -115,6 +143,15 @@ class _ProductsScreenState extends State<ProductsScreen> {
         title: const Text('Loja Online'),
         backgroundColor: Colors.blueAccent,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.exit_to_app),
             onPressed: _logout,
